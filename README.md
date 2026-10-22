@@ -26,8 +26,11 @@ npx eas-cli@latest build --profile development   # or: npx expo run:ios / run:an
 
 ## Development
 
+Uses Node 24 (the exact version is in `.nvmrc`; EAS cloud builds use the same one, set in `eas.json`).
+
 ```bash
-npm install
+nvm install         # or `nvm use`: picks up .nvmrc
+npm ci
 npx expo start      # dev server
 npm test            # unit tests (sorting, distances, notification text)
 npx tsc --noEmit    # typecheck
