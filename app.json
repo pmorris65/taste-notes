@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Taste Notes",
+    "slug": "taste-notes",
+    "scheme": "tastenotes",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tastenotes.app"
+    },
+    "android": {
+      "package": "com.tastenotes.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Taste Notes uses your location in the background to remind you of your notes when you arrive at a saved place.",
+          "locationAlwaysPermission": "Taste Notes uses your location in the background to remind you of your notes when you arrive at a saved place.",
+          "locationWhenInUsePermission": "Taste Notes uses your location to sort places by distance and to save where a place is.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#B5562F"
+        }
+      ]
+    ]
+  }
+}
