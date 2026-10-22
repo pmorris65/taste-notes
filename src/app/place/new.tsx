@@ -9,6 +9,7 @@ export default function NewPlace() {
     <PlaceForm
       saveLabel="Save place"
       locateOnOpen
+      search
       onSave={async (input) => {
         const id = await addPlace(input);
         router.replace({ pathname: '/place/[id]', params: { id } });

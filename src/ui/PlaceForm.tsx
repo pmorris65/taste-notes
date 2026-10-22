@@ -3,9 +3,11 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { CATEGORIES, type Coords } from '../domain/types';
 import { describeCoords, getCurrentCoords } from '../location/currentLocation';
+import { googlePlacesEnabled, type GooglePlace } from '../places/googlePlaces';
 import { useStore, type PlaceInput } from '../state/store';
 import { Body, Button, Card, Chip, ChipGroup, Label, Screen, Section, SwitchRow, TextField } from './components';
 import { notify } from './confirm';
+import { GooglePlaceSearch } from './GooglePlaceSearch';
 import { spacing, useColors } from './theme';
 
 const EMPTY: PlaceInput = { name: '', category: 'restaurant', coords: null, address: '', alerts: true };
@@ -15,12 +17,15 @@ export function PlaceForm({
   initial,
   saveLabel,
   locateOnOpen,
+  search,
   onSave,
 }: {
   initial?: PlaceInput;
   saveLabel: string;
   /** Fill in the current location straight away, if location is already allowed. */
   locateOnOpen?: boolean;
+  /** Offer a Google Maps search that fills in the form (when an API key is set up). */
+  search?: boolean;
   onSave: (input: PlaceInput) => Promise<void>;
 }) {
   const c = useColors();
@@ -35,13 +40,18 @@ export function PlaceForm({
 
   const apply = (found: Found | null, quiet: boolean) => {
     if (found) {
-      setForm((f) => ({
-        ...f,
-        coords: found.coords,
-        address: found.address || f.address,
-        // A place getting its first location starts with reminders on.
-        alerts: f.coords ? f.alerts : true,
-      }));
+      setForm((f) =>
+        // Don't let the automatic lookup overwrite a place picked from search in the meantime.
+        quiet && f.coords
+          ? f
+          : {
+              ...f,
+              coords: found.coords,
+              address: found.address || f.address,
+              // A place getting its first location starts with reminders on.
+              alerts: f.coords ? f.alerts : true,
+            },
+      );
     } else if (!quiet) notify('Location is off', 'Allow location access in Settings to save where a place is.');
   };
   const fail = (quiet: boolean) => {
@@ -66,6 +76,17 @@ export function PlaceForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const fillFromGoogle = (g: GooglePlace) => {
+    setForm((f) => ({
+      ...f,
+      name: g.name || f.name,
+      category: g.category,
+      address: g.address,
+      coords: g.coords ?? f.coords,
+      alerts: f.coords ? f.alerts : true,
+    }));
+  };
+
   const save = async () => {
     if (!form.name.trim()) {
       notify('Name needed', 'Give the place a name so you can find it later.');
@@ -82,6 +103,8 @@ export function PlaceForm({
 
   return (
     <Screen edges={['bottom']}>
+      {search && googlePlacesEnabled ? <GooglePlaceSearch onPick={fillFromGoogle} /> : null}
+
       <TextField
         label="Name"
         placeholder="e.g. Luigi's Pizzeria"

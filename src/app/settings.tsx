@@ -59,8 +59,9 @@ export default function SettingsScreen() {
 
       <Section title="Privacy">
         <Body style={{ padding: 16 }} muted>
-          Your places and notes stay on this phone. Your location is only used on the device, to sort places by
-          distance and to notice when you arrive somewhere you&apos;ve saved. It is never sent anywhere.
+          Your places and notes stay on this phone. Your location is used on the device to sort places by distance
+          and to notice when you arrive somewhere you&apos;ve saved. When you search Google Maps for a place, what you
+          type and your approximate location (to show nearby results first) are sent to Google.
         </Body>
       </Section>
     </Screen>

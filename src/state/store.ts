@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { distanceMeters } from '../domain/geo';
 import {
   DEFAULT_SETTINGS,
   newId,
@@ -38,11 +39,13 @@ interface State {
 }
 
 let repo: Repository | null = null;
+/** Within this distance of a place, you're treated as being there. */
+const NEARBY_M = 200;
 const now = () => new Date().toISOString();
 
 /**
- * Records that the user is at a place right now (they just added it or a note),
- * so geofencing doesn't immediately remind them about where they're standing.
+ * Records that the user is at a place right now, so geofencing doesn't
+ * immediately remind them about where they're standing.
  */
 async function markVisited(r: Repository, placeId: string): Promise<void> {
   const last = (await r.getValue<Record<string, number>>(LAST_ARRIVALS_KEY)) ?? {};
@@ -53,6 +56,12 @@ export const useStore = create<State>()((set, get) => {
   const db = () => {
     if (!repo) throw new Error('Storage is not open yet.');
     return repo;
+  };
+
+  /** Saving a place or note while standing there counts as a visit; doing it from elsewhere doesn't. */
+  const markVisitedIfHere = async (place: Place) => {
+    const here = get().here;
+    if (place.coords && here && distanceMeters(here, place.coords) < NEARBY_M) await markVisited(db(), place.id);
   };
 
   return {
@@ -82,7 +91,7 @@ export const useStore = create<State>()((set, get) => {
       const stamp = now();
       const place: Place = { id: newId(), ...input, name: input.name.trim(), createdAt: stamp, updatedAt: stamp };
       await db().savePlace(place);
-      if (place.coords) await markVisited(db(), place.id);
+      await markVisitedIfHere(place);
       set({ places: [...get().places, place] });
       return place.id;
     },
@@ -104,7 +113,8 @@ export const useStore = create<State>()((set, get) => {
     async addNote(placeId, text, verdict) {
       const note: Note = { id: newId(), placeId, text: text.trim(), verdict, createdAt: now() };
       await db().saveNote(note);
-      await markVisited(db(), placeId);
+      const place = get().places.find((p) => p.id === placeId);
+      if (place) await markVisitedIfHere(place);
       set({ notes: [...get().notes, note] });
       // Count a new note as activity on the place, for "Recent" sorting.
       await get().updatePlace(placeId, {});
