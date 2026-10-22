@@ -41,3 +41,18 @@ export async function describeCoords(coords: Coords): Promise<string> {
     return '';
   }
 }
+
+/**
+ * Finds a typed address on the map with the phone's built-in geocoder (no API
+ * key needed). Null if it can't be found. Android needs location permission.
+ */
+export async function locateAddress(address: string): Promise<Coords | null> {
+  const text = address.trim();
+  if (!text) return null;
+  try {
+    const [found] = await Location.geocodeAsync(text);
+    return found ? { latitude: found.latitude, longitude: found.longitude } : null;
+  } catch {
+    return null;
+  }
+}

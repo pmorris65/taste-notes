@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 
 import { formatDistance, placeDistance } from '../../domain/geo';
 import { CATEGORIES, VERDICTS, type Note, type Verdict } from '../../domain/types';
+import { getCurrentCoords, locateAddress } from '../../location/currentLocation';
 import { useStore } from '../../state/store';
 import { Body, Button, Card, Label, Row, Screen, Section, Segmented, SwitchRow, TextField } from '../../ui/components';
 import { confirm, notify } from '../../ui/confirm';
@@ -19,6 +20,7 @@ export default function PlaceDetail() {
   const { addNote, deleteNote, deletePlace, updatePlace } = useStore.getState();
   const [text, setText] = useState('');
   const [verdict, setVerdict] = useState<Verdict>('like');
+  const [locating, setLocating] = useState(false);
 
   if (!place) {
     return (
@@ -51,6 +53,21 @@ export default function PlaceDetail() {
 
   const removeNote = async (note: Note) => {
     if (await confirm('Delete this note?', note.text, 'Delete', true)) await deleteNote(note.id);
+  };
+
+  /** Gives a place without coordinates a map location, so it can have reminders. */
+  const setLocation = async (from: 'address' | 'here') => {
+    setLocating(true);
+    try {
+      const coords = from === 'address' ? await locateAddress(place.address) : await getCurrentCoords();
+      if (coords) await updatePlace(place.id, { coords, alerts: true });
+      else if (from === 'address') notify("Couldn't find that address", 'Try Edit to search for the place or fix the address.');
+      else notify('Location is off', 'Allow location access in Settings to use where you are.');
+    } catch {
+      notify("Couldn't get a location", 'Please try again.');
+    } finally {
+      setLocating(false);
+    }
   };
 
   const removePlace = async () => {
@@ -120,10 +137,26 @@ export default function PlaceDetail() {
         );
       })}
 
+      {!place.coords ? (
+        <Card>
+          <Label>NO MAP LOCATION</Label>
+          <Body muted>Reminders need to know where this place is on the map. The address alone isn&apos;t enough.</Body>
+          {place.address ? (
+            <Button title="Find address on the map" onPress={() => setLocation('address')} disabled={locating} />
+          ) : null}
+          <Button
+            title="Use where I am now"
+            kind="secondary"
+            onPress={() => setLocation('here')}
+            disabled={locating}
+          />
+        </Card>
+      ) : null}
+
       <Section
         footer={
           !place.coords
-            ? 'Save a location for this place (Edit) to get reminders when you arrive.'
+            ? 'Set a map location above to turn on reminders.'
             : !alertsOn
               ? 'Arrival reminders are off for all places. Turn them on in Settings.'
               : 'You’ll get a notification with your notes when you arrive.'

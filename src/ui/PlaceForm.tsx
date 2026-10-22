@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { CATEGORIES, type Coords } from '../domain/types';
-import { describeCoords, getCurrentCoords } from '../location/currentLocation';
+import { describeCoords, getCurrentCoords, locateAddress } from '../location/currentLocation';
 import { googlePlacesEnabled, type GooglePlace } from '../places/googlePlaces';
 import { useStore, type PlaceInput } from '../state/store';
 import { Body, Button, Card, Chip, ChipGroup, Label, Screen, Section, SwitchRow, TextField } from './components';
@@ -94,7 +94,9 @@ export function PlaceForm({
     }
     setSaving(true);
     try {
-      await onSave(form);
+      // A typed address without a map location: look it up, so reminders can work.
+      const coords = form.coords ?? (await locateAddress(form.address));
+      await onSave(coords && !form.coords ? { ...form, coords, alerts: true } : form);
     } catch {
       notify("Couldn't save", 'Please try again.');
       setSaving(false);
@@ -160,7 +162,9 @@ export function PlaceForm({
         footer={
           form.coords
             ? 'Get a notification with your notes when you arrive here.'
-            : 'Save a location to get reminders when you arrive.'
+            : form.address.trim()
+              ? 'The address will be found on the map when you save, so reminders can work.'
+              : 'Set a location above, or type an address, to get reminders when you arrive.'
         }
       >
         <SwitchRow
