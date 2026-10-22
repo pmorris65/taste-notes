@@ -1,9 +1,9 @@
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { router, Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, AppState, Platform, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { ActivityIndicator, AppState, Platform, StyleSheet, useColorScheme, View } from 'react-native';
 
 import { pickGeofencePlaces } from '../domain/geo';
 import { refreshLocationPermission } from '../location/currentLocation';
@@ -15,7 +15,17 @@ import { useColors } from '../ui/theme';
 
 export default function RootLayout() {
   const c = useColors();
+  const scheme = useColorScheme();
   const status = useStore((s) => s.status);
+
+  // Without this, native headers (and iOS's glass header buttons) stay light in dark mode.
+  const navTheme = useMemo(() => {
+    const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: { ...base.colors, primary: c.accent, background: c.background, card: c.background, text: c.text, border: c.border },
+    };
+  }, [scheme, c]);
 
   useEffect(() => {
     configureNotifications();
@@ -46,13 +56,14 @@ export default function RootLayout() {
             headerTitleStyle: { color: c.text },
             headerShadowVisible: false,
             contentStyle: { backgroundColor: c.background },
-            headerBackTitle: 'Back',
+            headerBackButtonDisplayMode: 'minimal',
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false, title: 'Places' }} />
           <Stack.Screen name="place/new" options={{ title: 'New place', presentation: 'modal' }} />
           <Stack.Screen name="place/[id]" options={{ title: '' }} />
           <Stack.Screen name="edit/[id]" options={{ title: 'Edit place', presentation: 'modal' }} />
+          <Stack.Screen name="note/[id]" options={{ title: 'Edit note', presentation: 'modal' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         </Stack>
         <LocationWatcher />
@@ -63,10 +74,12 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={[styles.fill, { backgroundColor: c.background }]}>
-      <StatusBar style="auto" />
-      {content}
-    </View>
+    <ThemeProvider value={navTheme}>
+      <View style={[styles.fill, { backgroundColor: c.background }]}>
+        <StatusBar style="auto" />
+        {content}
+      </View>
+    </ThemeProvider>
   );
 }
 
@@ -134,21 +147,26 @@ function GeofenceSync() {
   return null;
 }
 
+/** The last notification tap acted on. Module-level so it survives the layout remounting. */
+let handledNotification: string | null = null;
+
 /** Opens the place when the user taps its arrival reminder. */
 function NotificationTaps() {
   const response = Notifications.useLastNotificationResponse();
-  const handled = useRef<string | null>(null);
+  // Navigating before the navigator is ready (e.g. on a cold start from the tap) is ignored.
+  const navReady = !!useRootNavigationState()?.key;
 
   useEffect(() => {
-    if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    if (!navReady || !response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
     const { identifier, content } = response.notification.request;
-    if (handled.current === identifier) return;
-    handled.current = identifier;
+    if (handledNotification === identifier) return;
+    handledNotification = identifier;
     const placeId = content.data?.placeId;
-    if (typeof placeId === 'string' && useStore.getState().places.some((p) => p.id === placeId)) {
-      router.push({ pathname: '/place/[id]', params: { id: placeId } });
-    }
-  }, [response]);
+    if (typeof placeId !== 'string' || !useStore.getState().places.some((p) => p.id === placeId)) return;
+    // Close any open form first, so the place doesn't open on top of it.
+    if (router.canDismiss()) router.dismissAll();
+    router.navigate({ pathname: '/place/[id]', params: { id: placeId } });
+  }, [response, navReady]);
 
   return null;
 }

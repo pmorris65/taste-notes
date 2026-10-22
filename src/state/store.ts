@@ -32,6 +32,7 @@ interface State {
   updatePlace(id: string, patch: Partial<PlaceInput>): Promise<void>;
   deletePlace(id: string): Promise<void>;
   addNote(placeId: string, text: string, verdict: Verdict): Promise<void>;
+  updateNote(id: string, patch: Partial<Pick<Note, 'text' | 'verdict'>>): Promise<void>;
   deleteNote(id: string): Promise<void>;
   updateSettings(patch: Partial<Settings>): Promise<void>;
   setHere(here: Coords | null): void;
@@ -118,6 +119,14 @@ export const useStore = create<State>()((set, get) => {
       set({ notes: [...get().notes, note] });
       // Count a new note as activity on the place, for "Recent" sorting.
       await get().updatePlace(placeId, {});
+    },
+
+    async updateNote(id, patch) {
+      const current = get().notes.find((n) => n.id === id);
+      if (!current) return;
+      const note: Note = { ...current, ...patch, text: (patch.text ?? current.text).trim() };
+      await db().saveNote(note);
+      set({ notes: get().notes.map((n) => (n.id === id ? note : n)) });
     },
 
     async deleteNote(id) {

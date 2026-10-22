@@ -99,27 +99,48 @@ export type AlertsPermission =
   | 'unsupported'
   | 'location-denied'
   | 'background-denied'
+  | 'precise-denied'
   | 'notifications-denied';
 
+/** Geofencing needs precise location: iOS doesn't monitor regions with approximate location. */
+function isPrecise(response: Location.LocationPermissionResponse): boolean {
+  if (response.ios) return response.ios.accuracy === 'full';
+  if (response.android) return response.android.accuracy === 'fine';
+  return true;
+}
+
 /**
- * Asks for what arrival reminders need, in order: location while using the
- * app, then location in the background ("Always"), then notifications.
+ * Asks for what arrival reminders need, in order: notifications, location
+ * while using the app, then location in the background ("Always").
  */
 export async function requestAlertsPermission(): Promise<AlertsPermission> {
   if (!supported) return 'unsupported';
+  if (!(await requestNotificationPermission())) return 'notifications-denied';
   const foreground = await Location.requestForegroundPermissionsAsync();
   if (!foreground.granted) return 'location-denied';
+  if (!isPrecise(foreground)) return 'precise-denied';
   const background = await Location.requestBackgroundPermissionsAsync();
   if (!background.granted) return 'background-denied';
-  if (!(await requestNotificationPermission())) return 'notifications-denied';
   return 'ok';
 }
 
 /** Like requestAlertsPermission, but only checks: it never shows a prompt. */
 export async function checkAlertsPermission(): Promise<AlertsPermission> {
   if (!supported) return 'unsupported';
-  if (!(await Location.getForegroundPermissionsAsync()).granted) return 'location-denied';
-  if (!(await Location.getBackgroundPermissionsAsync()).granted) return 'background-denied';
   if (!(await hasNotificationPermission())) return 'notifications-denied';
+  const foreground = await Location.getForegroundPermissionsAsync();
+  if (!foreground.granted) return 'location-denied';
+  if (!isPrecise(foreground)) return 'precise-denied';
+  if (!(await Location.getBackgroundPermissionsAsync()).granted) return 'background-denied';
   return 'ok';
 }
+
+/** What to tell the user when reminders can't work, and whether Settings can fix it. */
+export const ALERTS_PROBLEMS: Record<Exclude<AlertsPermission, 'ok'>, string> = {
+  unsupported: 'Arrival reminders only work in the iPhone and Android apps.',
+  'notifications-denied': 'Notifications are turned off for Taste Notes. Turn them on in Settings.',
+  'location-denied': 'Taste Notes needs access to your location. Allow it in Settings.',
+  'precise-denied': 'Turn on Precise Location for Taste Notes in Settings. Reminders can’t tell when you arrive with approximate location.',
+  'background-denied':
+    'Reminders need location access set to “Always” (iPhone) or “Allow all the time” (Android), so the phone can tell the app when you arrive while it’s closed.',
+};

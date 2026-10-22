@@ -26,7 +26,7 @@ export default function EditPlace() {
         address: place.address,
         alerts: place.alerts,
       }}
-      saveLabel="Save changes"
+      search
       onSave={async (input) => {
         await updatePlace(place.id, input);
         router.back();

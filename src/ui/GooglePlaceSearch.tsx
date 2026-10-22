@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { getPlace, newSessionToken, searchPlaces, type GooglePlace, type PlaceSuggestion } from '../places/googlePlaces';
 import { useStore } from '../state/store';
@@ -11,7 +11,7 @@ const MIN_CHARS = 2;
 const DEBOUNCE_MS = 300;
 
 /** A search box that finds places on Google Maps and hands back the picked one. */
-export function GooglePlaceSearch({ onPick }: { onPick: (place: GooglePlace) => void }) {
+export function GooglePlaceSearch({ onPick, autoFocus }: { onPick: (place: GooglePlace) => void; autoFocus?: boolean }) {
   const c = useColors();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -29,9 +29,15 @@ export function GooglePlaceSearch({ onPick }: { onPick: (place: GooglePlace) => 
         .then((found) => {
           setSuggestions(found);
           setFailed(false);
+          AccessibilityInfo.announceForAccessibility(
+            found.length ? `${found.length} result${found.length === 1 ? '' : 's'}` : 'No matches',
+          );
         })
         .catch(() => {
-          if (!controller.signal.aborted) setFailed(true);
+          if (!controller.signal.aborted) {
+            setSuggestions([]);
+            setFailed(true);
+          }
         })
         .finally(() => {
           if (!controller.signal.aborted) setBusy(false);
@@ -45,10 +51,10 @@ export function GooglePlaceSearch({ onPick }: { onPick: (place: GooglePlace) => 
 
   const change = (text: string) => {
     setQuery(text);
-    if (text.trim().length < MIN_CHARS) {
-      setSuggestions([]);
-      setFailed(false);
-    }
+    // Old results would no longer match what's typed; clear them until the new ones arrive.
+    setSuggestions([]);
+    setFailed(false);
+    setBusy(text.trim().length >= MIN_CHARS);
   };
 
   const pick = async (s: PlaceSuggestion) => {
@@ -58,6 +64,7 @@ export function GooglePlaceSearch({ onPick }: { onPick: (place: GooglePlace) => 
       onPick(place);
       setQuery('');
       setSuggestions([]);
+      AccessibilityInfo.announceForAccessibility(`Filled in ${place.name}`);
     } catch {
       notify("Couldn't load that place", 'Check your connection and try again.');
     } finally {
@@ -77,16 +84,22 @@ export function GooglePlaceSearch({ onPick }: { onPick: (place: GooglePlace) => 
         value={query}
         onChangeText={change}
         autoCorrect={false}
+        autoFocus={autoFocus}
         returnKeyType="search"
       />
       {showList ? (
-        <View style={[styles.list, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <View
+          style={[styles.list, { backgroundColor: c.surface, borderColor: c.controlBorder }]}
+          accessibilityLiveRegion="polite"
+        >
           {busy && suggestions.length === 0 ? (
-            <ActivityIndicator style={styles.status} color={c.muted} />
+            <ActivityIndicator style={styles.status} color={c.muted} accessibilityLabel="Searching" />
           ) : failed ? (
-            <Text style={[styles.status, { color: c.muted }]}>Search isn&apos;t working right now.</Text>
+            <Text style={[styles.status, { color: c.muted }]}>
+              Can&apos;t reach Google Maps right now. You can still type the name and address below.
+            </Text>
           ) : suggestions.length === 0 && !busy ? (
-            <Text style={[styles.status, { color: c.muted }]}>No matches.</Text>
+            <Text style={[styles.status, { color: c.muted }]}>No matches. Try another spelling, or fill in the details below.</Text>
           ) : (
             suggestions.map((s, i) => (
               <Pressable
@@ -120,8 +133,8 @@ export function GooglePlaceSearch({ onPick }: { onPick: (place: GooglePlace) => 
 }
 
 const styles = StyleSheet.create({
-  list: { borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  row: { paddingHorizontal: spacing.md, paddingVertical: 10, gap: 2 },
-  status: { padding: spacing.md },
-  attribution: { fontSize: 11, textAlign: 'right', paddingHorizontal: spacing.md, paddingBottom: spacing.sm, paddingTop: 4 },
+  list: { borderRadius: radius.md, borderWidth: 1, overflow: 'hidden' },
+  row: { paddingHorizontal: spacing.lg, paddingVertical: 10, gap: 2, minHeight: 48, justifyContent: 'center' },
+  status: { padding: spacing.lg },
+  attribution: { fontSize: 12, textAlign: 'right', paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, paddingTop: 4 },
 });

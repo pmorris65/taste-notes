@@ -22,12 +22,19 @@ export async function requestLocationPermission(): Promise<LocationPermission> {
   return permission;
 }
 
+/** Indoors a precise fix can take a long time; after this, fall back to the last known position. */
+const FIX_TIMEOUT_MS = 10_000;
+
 /** A fresh, accurate position for saving where a place is. Null if not allowed. */
 export async function getCurrentCoords(): Promise<Coords | null> {
   if ((await requestLocationPermission()) !== 'granted') return null;
-  const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-  useStore.getState().setHere({ latitude: coords.latitude, longitude: coords.longitude });
-  return { latitude: coords.latitude, longitude: coords.longitude };
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), FIX_TIMEOUT_MS));
+  const fix = await Promise.race([Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }), timeout]);
+  const position = fix ?? (await Location.getLastKnownPositionAsync());
+  if (!position) throw new Error('No position available');
+  const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+  useStore.getState().setHere(coords);
+  return coords;
 }
 
 /** A short street address for a position, or '' if it can't be looked up. */

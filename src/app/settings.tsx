@@ -1,43 +1,54 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Linking } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, Linking } from 'react-native';
 
-import { checkAlertsPermission, requestAlertsPermission, type AlertsPermission } from '../location/geofence';
+import { enableArrivalReminders } from '../location/enableReminders';
+import { ALERTS_PROBLEMS, checkAlertsPermission, type AlertsPermission } from '../location/geofence';
 import { useStore } from '../state/store';
 import { Body, Button, Card, Screen, Section, SwitchRow } from '../ui/components';
-
-const PROBLEMS: Record<Exclude<AlertsPermission, 'ok'>, string> = {
-  unsupported: 'Arrival reminders only work in the iPhone and Android apps.',
-  'location-denied': 'Taste Notes needs access to your location. Allow it in Settings.',
-  'background-denied':
-    'Reminders need location access set to “Always” (iPhone) or “Allow all the time” (Android), so the phone can tell the app when you arrive while it’s closed.',
-  'notifications-denied': 'Notifications are turned off for Taste Notes. Turn them on in Settings.',
-};
 
 export default function SettingsScreen() {
   const enabled = useStore((s) => s.settings.arrivalAlerts);
   const watched = useStore((s) => s.places.filter((p) => p.alerts && p.coords).length);
   const updateSettings = useStore((s) => s.updateSettings);
   const [problem, setProblem] = useState<AlertsPermission>('ok');
+  // The user tried to turn reminders on but a permission was missing; finish once it's granted.
+  const [pending, setPending] = useState(false);
 
-  // Re-check whenever the screen is shown, e.g. after coming back from the phone's Settings.
-  useFocusEffect(
-    useCallback(() => {
-      checkAlertsPermission()
-        .then(setProblem)
-        .catch(() => {});
-    }, []),
-  );
+  const recheck = useCallback(() => {
+    checkAlertsPermission()
+      .then(async (result) => {
+        setProblem(result);
+        if (result === 'ok' && pending) {
+          setPending(false);
+          await updateSettings({ arrivalAlerts: true });
+        }
+      })
+      .catch(() => {});
+  }, [pending, updateSettings]);
+
+  // Re-check when the screen is shown, and when coming back from the phone's Settings app.
+  useFocusEffect(recheck);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') recheck();
+    });
+    return () => sub.remove();
+  }, [recheck]);
 
   const toggle = async (on: boolean) => {
     if (!on) {
+      setPending(false);
       await updateSettings({ arrivalAlerts: false });
       return;
     }
-    const result = await requestAlertsPermission().catch((): AlertsPermission => 'unsupported');
+    const result = await enableArrivalReminders();
+    if (result === null) return;
     setProblem(result);
-    if (result === 'ok') await updateSettings({ arrivalAlerts: true });
+    setPending(result !== 'ok' && result !== 'unsupported');
   };
+
+  const showProblem = problem !== 'ok' && (enabled || pending || problem === 'unsupported');
 
   return (
     <Screen edges={['bottom']}>
@@ -48,20 +59,22 @@ export default function SettingsScreen() {
         <SwitchRow title="Remind me when I arrive" value={enabled} onValueChange={toggle} last />
       </Section>
 
-      {problem !== 'ok' && (enabled || problem !== 'unsupported') ? (
+      {showProblem ? (
         <Card>
-          <Body>{PROBLEMS[problem]}</Body>
+          <Body>{ALERTS_PROBLEMS[problem as Exclude<AlertsPermission, 'ok'>]}</Body>
           {problem !== 'unsupported' ? (
             <Button title="Open Settings" kind="secondary" onPress={() => Linking.openSettings()} />
           ) : null}
         </Card>
       ) : null}
 
-      <Section title="Privacy">
-        <Body style={{ padding: 16 }} muted>
-          Your places and notes stay on this phone. Your location is used on the device to sort places by distance
-          and to notice when you arrive somewhere you&apos;ve saved. When you search Google Maps for a place, what you
-          type and your approximate location (to show nearby results first) are sent to Google.
+      <Section
+        title="Privacy"
+        footer="When you search Google Maps for a place, what you type and your approximate location (to show nearby results first) are sent to Google."
+      >
+        <Body style={{ padding: 16 }}>
+          Your places and notes stay on this phone. Your location is used on the device to sort places by distance and
+          to notice when you arrive somewhere you&apos;ve saved.
         </Body>
       </Section>
     </Screen>
