@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatDistance, placeDistance, sortPlaces } from '../domain/geo';
-import { CATEGORIES, VERDICTS, type Note, type Place, type SortMode } from '../domain/types';
+import { CATEGORIES, VERDICTS, type DistanceUnit, type Note, type Place, type SortMode } from '../domain/types';
 import { requestLocationPermission } from '../location/currentLocation';
 import { useStore } from '../state/store';
 import { Body, Button, Card, Screen, Segmented, TextField } from '../ui/components';
@@ -27,6 +27,7 @@ export default function Places() {
   const here = useStore((s) => s.here);
   const sort = useStore((s) => s.settings.sort);
   const alertsOn = useStore((s) => s.settings.arrivalAlerts);
+  const units = useStore((s) => s.settings.units);
   const permission = useStore((s) => s.locationPermission);
   const updateSettings = useStore((s) => s.updateSettings);
   const [query, setQuery] = useState('');
@@ -64,6 +65,7 @@ export default function Places() {
       right={
         <>
           <IconButton name="settings" label="Settings" onPress={() => router.push('/settings')} />
+          {places.length > 0 ? <IconButton name="map" label="Map" onPress={() => router.push('/map')} /> : null}
           <IconButton name="plus" label="Add a place" filled onPress={() => router.push('/place/new')} />
         </>
       }
@@ -140,6 +142,7 @@ export default function Places() {
               notes={notesByPlace.get(p.id) ?? []}
               distance={placeDistance(p, here)}
               reminding={alertsOn && p.alerts && !!p.coords}
+              units={units}
             />
           ))}
         </View>
@@ -153,22 +156,24 @@ function PlaceCard({
   notes,
   distance,
   reminding,
+  units,
 }: {
   place: Place;
   notes: Note[];
   distance: number | null;
   reminding: boolean;
+  units: DistanceUnit;
 }) {
   const c = useColors();
   const newest = [...notes].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   const groups = VERDICTS.map((v) => ({ ...v, items: newest.filter((n) => n.verdict === v.value) })).filter(
     (g) => g.items.length > 0,
   );
-  const meta = [categoryLabel(place), distance !== null ? formatDistance(distance) : null].filter(Boolean).join(' · ');
+  const meta = [categoryLabel(place), distance !== null ? formatDistance(distance, units) : null].filter(Boolean).join(' · ');
   const spoken = [
     place.name,
     categoryLabel(place),
-    distance !== null ? `${formatDistance(distance)} away` : null,
+    distance !== null ? `${formatDistance(distance, units)} away` : null,
     ...groups.map((g) => `${g.label}: ${g.items.map((n) => n.text).join(', ')}`),
     groups.length === 0 ? 'No notes yet' : null,
     reminding ? 'Reminder on' : null,
@@ -217,7 +222,7 @@ function IconButton({
   onPress,
   filled,
 }: {
-  name: 'plus' | 'settings';
+  name: 'plus' | 'settings' | 'map';
   label: string;
   onPress: () => void;
   filled?: boolean;

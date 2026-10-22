@@ -5,13 +5,14 @@ import { AppState, Linking, View } from 'react-native';
 import { enableArrivalReminders } from '../location/enableReminders';
 import { ALERTS_PROBLEMS, checkAlertsPermission, type AlertsPermission } from '../location/geofence';
 import { useStore } from '../state/store';
-import { Body, Button, Card, Label, Screen, Section, SwitchRow } from '../ui/components';
+import { Body, Button, Card, Label, Screen, Section, Segmented, SwitchRow } from '../ui/components';
 import { ThemePicker } from '../ui/ThemePicker';
 import { spacing } from '../ui/theme';
 
 export default function SettingsScreen() {
   const enabled = useStore((s) => s.settings.arrivalAlerts);
   const theme = useStore((s) => s.settings.theme);
+  const units = useStore((s) => s.settings.units);
   const watched = useStore((s) => s.places.filter((p) => p.alerts && p.coords).length);
   const updateSettings = useStore((s) => s.updateSettings);
   const [problem, setProblem] = useState<AlertsPermission>('ok');
@@ -70,6 +71,21 @@ export default function SettingsScreen() {
           ) : null}
         </Card>
       ) : null}
+
+      <View style={{ gap: spacing.sm }}>
+        <Label header style={{ marginLeft: spacing.xs }}>
+          Distances
+        </Label>
+        <Segmented
+          label="Distance units"
+          options={[
+            { value: 'mi', label: 'Miles' },
+            { value: 'km', label: 'Kilometres' },
+          ]}
+          value={units}
+          onChange={(u) => updateSettings({ units: u })}
+        />
+      </View>
 
       <View style={{ gap: spacing.sm }}>
         <Label header style={{ marginLeft: spacing.xs }}>

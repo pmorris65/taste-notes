@@ -25,13 +25,29 @@ describe('distanceMeters', () => {
 
 describe('formatDistance', () => {
   it.each([
+    [3, '50 ft'],
+    [40, '150 ft'],
+    [150, '500 ft'],
+    [200, '0.1 mi'],
+    [1609, '1.0 mi'],
+    [5000, '3.1 mi'],
+    [25_000, '16 mi'],
+  ])('%d m → %s', (m, text) => {
+    expect(formatDistance(m, 'mi')).toBe(text);
+  });
+
+  it('defaults to miles', () => {
+    expect(formatDistance(1609)).toBe('1.0 mi');
+  });
+
+  it.each([
     [3, '10 m'],
     [124, '120 m'],
     [999, '1000 m'],
     [1240, '1.2 km'],
     [15_600, '16 km'],
-  ])('%d m → %s', (m, text) => {
-    expect(formatDistance(m)).toBe(text);
+  ])('%d m → %s in km', (m, text) => {
+    expect(formatDistance(m, 'km')).toBe(text);
   });
 });
 

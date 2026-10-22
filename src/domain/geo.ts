@@ -1,4 +1,4 @@
-import type { Coords, Place, SortMode } from './types';
+import type { Coords, DistanceUnit, Place, SortMode } from './types';
 
 const EARTH_RADIUS_M = 6_371_000;
 const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -12,7 +12,17 @@ export function distanceMeters(a: Coords, b: Coords): number {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-export function formatDistance(meters: number): string {
+const METERS_PER_MILE = 1609.344;
+const FEET_PER_METER = 3.28084;
+
+/** A short distance in miles (feet when very close) or kilometres (metres when close). */
+export function formatDistance(meters: number, units: DistanceUnit = 'mi'): string {
+  if (units === 'mi') {
+    const miles = meters / METERS_PER_MILE;
+    // Under about 0.1 mi, feet are more useful, rounded to 50 ft.
+    if (miles < 0.095) return `${Math.max(50, Math.round((meters * FEET_PER_METER) / 50) * 50)} ft`;
+    return miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
+  }
   if (meters < 1000) return `${Math.max(10, Math.round(meters / 10) * 10)} m`;
   const km = meters / 1000;
   return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;

@@ -7,6 +7,8 @@ Remember what you like and don't like at the restaurants, cafés, bars and shops
 - **Nearby first**: the list is sorted by distance from you (or A–Z / most recent), and you can search across places and notes.
 - **Arrival reminders**: when you walk into a saved place, you get a notification listing what you liked and what to avoid. Tap it to open the place.
 
+- **Map**: all your places as pins, coloured by whether you mostly liked them; tap a pin's bubble to open the place. "Show on map" from any place.
+- **Miles or kilometres**: distances in miles by default; switch in Settings.
 - **Food colour themes**: Coffee & caramel (default), Tomato & basil, Mustard & ketchup, or Avocado & citrus, each with light and dark versions (Settings → Colour theme).
 
 Everything stays on the phone (SQLite). Location is only used on the device.
@@ -37,6 +39,10 @@ npx eas-cli@latest build --profile development   # or: npx expo run:ios / run:an
 For a development build that's all: the app's code comes from your computer. For `preview`/`production` builds, also add `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` to the project's environment variables on expo.dev, since `.env.local` isn't uploaded to EAS.
 
 While searching, what you type and your approximate location (to rank nearby results) are sent to Google.
+
+## Map
+
+The map uses `react-native-maps` (Apple Maps on iPhone, no API key needed). It's a native module, so it needs a new development build after pulling. On Android it uses Google Maps and needs a Google Maps SDK for Android key (add the `react-native-maps` config plugin with `androidGoogleMapsApiKey` in `app.json`); without one the map screen won't load there. The web preview shows a placeholder instead of the map.
 
 ## Development
 

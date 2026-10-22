@@ -22,6 +22,7 @@ export default function PlaceDetail() {
   const allNotes = useStore((s) => s.notes);
   const here = useStore((s) => s.here);
   const alertsOn = useStore((s) => s.settings.arrivalAlerts);
+  const units = useStore((s) => s.settings.units);
   const { addNote, deletePlace, updatePlace } = useStore.getState();
   const [text, setText] = useState('');
   const [lastVerdict, setLastVerdict] = useState<Verdict>('like');
@@ -43,7 +44,7 @@ export default function PlaceDetail() {
   const distance = placeDistance(place, here);
   const meta = [
     CATEGORIES.find((cat) => cat.value === place.category)?.label,
-    distance !== null ? `${formatDistance(distance)} away` : null,
+    distance !== null ? `${formatDistance(distance, units)} away` : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -121,6 +122,15 @@ export default function PlaceDetail() {
         </Text>
         {meta ? <Text style={[type.subhead, { color: c.muted }]}>{meta}</Text> : null}
         {place.address ? <Text style={[type.subhead, { color: c.muted }]}>{place.address}</Text> : null}
+        {place.coords ? (
+          <Text
+            accessibilityRole="link"
+            onPress={() => router.push({ pathname: '/map', params: { focus: place.id } })}
+            style={[type.subhead, { color: c.accent, fontWeight: '600', paddingVertical: 6, alignSelf: 'flex-start' }]}
+          >
+            Show on map
+          </Text>
+        ) : null}
       </View>
 
       {!place.coords ? (

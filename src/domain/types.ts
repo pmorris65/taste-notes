@@ -45,6 +45,8 @@ export interface Note {
 
 export type SortMode = 'nearby' | 'name' | 'recent';
 
+export type DistanceUnit = 'mi' | 'km';
+
 export type ThemeName = 'coffee' | 'tomato' | 'diner' | 'avocado';
 
 export const THEMES: { value: ThemeName; label: string; description: string }[] = [
@@ -59,9 +61,10 @@ export interface Settings {
   arrivalAlerts: boolean;
   sort: SortMode;
   theme: ThemeName;
+  units: DistanceUnit;
 }
 
-export const DEFAULT_SETTINGS: Settings = { arrivalAlerts: false, sort: 'nearby', theme: 'coffee' };
+export const DEFAULT_SETTINGS: Settings = { arrivalAlerts: false, sort: 'nearby', theme: 'coffee', units: 'mi' };
 
 export function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;

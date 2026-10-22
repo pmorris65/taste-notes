@@ -65,6 +65,7 @@ export default function RootLayout() {
           <Stack.Screen name="edit/[id]" options={{ title: 'Edit place', presentation: 'modal' }} />
           <Stack.Screen name="note/[id]" options={{ title: 'Edit note', presentation: 'modal' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+          <Stack.Screen name="map" options={{ title: 'Map' }} />
         </Stack>
         <LocationWatcher />
         <GeofenceSync />
