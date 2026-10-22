@@ -7,6 +7,8 @@ Remember what you like and don't like at the restaurants, cafés, bars and shops
 - **Nearby first**: the list is sorted by distance from you (or A–Z / most recent), and you can search across places and notes.
 - **Arrival reminders**: when you walk into a saved place, you get a notification listing what you liked and what to avoid. Tap it to open the place.
 
+- **Food colour themes**: Coffee & caramel (default), Tomato & basil, Mustard & ketchup, or Avocado & citrus, each with light and dark versions (Settings → Colour theme).
+
 Everything stays on the phone (SQLite). Location is only used on the device.
 
 ## How arrival reminders work

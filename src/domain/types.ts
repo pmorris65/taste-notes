@@ -45,13 +45,23 @@ export interface Note {
 
 export type SortMode = 'nearby' | 'name' | 'recent';
 
+export type ThemeName = 'coffee' | 'tomato' | 'diner' | 'avocado';
+
+export const THEMES: { value: ThemeName; label: string; description: string }[] = [
+  { value: 'coffee', label: 'Coffee & caramel', description: 'Cosy café: caramel, latte and matcha' },
+  { value: 'tomato', label: 'Tomato & basil', description: 'Trattoria: tomato red and basil green' },
+  { value: 'diner', label: 'Mustard & ketchup', description: 'Diner: ketchup red, mustard and pickle' },
+  { value: 'avocado', label: 'Avocado & citrus', description: 'Brunch: avocado green and citrus' },
+];
+
 export interface Settings {
   /** Master switch for arrival reminders. */
   arrivalAlerts: boolean;
   sort: SortMode;
+  theme: ThemeName;
 }
 
-export const DEFAULT_SETTINGS: Settings = { arrivalAlerts: false, sort: 'nearby' };
+export const DEFAULT_SETTINGS: Settings = { arrivalAlerts: false, sort: 'nearby', theme: 'coffee' };
 
 export function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;

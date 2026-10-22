@@ -1,14 +1,17 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Linking } from 'react-native';
+import { AppState, Linking, View } from 'react-native';
 
 import { enableArrivalReminders } from '../location/enableReminders';
 import { ALERTS_PROBLEMS, checkAlertsPermission, type AlertsPermission } from '../location/geofence';
 import { useStore } from '../state/store';
-import { Body, Button, Card, Screen, Section, SwitchRow } from '../ui/components';
+import { Body, Button, Card, Label, Screen, Section, SwitchRow } from '../ui/components';
+import { ThemePicker } from '../ui/ThemePicker';
+import { spacing } from '../ui/theme';
 
 export default function SettingsScreen() {
   const enabled = useStore((s) => s.settings.arrivalAlerts);
+  const theme = useStore((s) => s.settings.theme);
   const watched = useStore((s) => s.places.filter((p) => p.alerts && p.coords).length);
   const updateSettings = useStore((s) => s.updateSettings);
   const [problem, setProblem] = useState<AlertsPermission>('ok');
@@ -67,6 +70,13 @@ export default function SettingsScreen() {
           ) : null}
         </Card>
       ) : null}
+
+      <View style={{ gap: spacing.sm }}>
+        <Label header style={{ marginLeft: spacing.xs }}>
+          Colour theme
+        </Label>
+        <ThemePicker value={theme} onChange={(t) => updateSettings({ theme: t })} />
+      </View>
 
       <Section
         title="Privacy"

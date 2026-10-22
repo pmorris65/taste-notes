@@ -115,7 +115,7 @@ export default function Places() {
 
       {places.length === 0 ? (
         <View style={styles.empty}>
-          <View style={[styles.emptyIcon, { backgroundColor: c.accentSoft }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: c.accentSoft, borderColor: c.highlight }]}>
             <Feather name="book-open" size={30} color={c.accent} />
           </View>
           <Text style={[type.title, { color: c.text, textAlign: 'center' }]} accessibilityRole="header">
@@ -184,7 +184,7 @@ function PlaceCard({
       onPress={() => router.push({ pathname: '/place/[id]', params: { id: place.id } })}
       style={({ pressed }) => [
         styles.placeCard,
-        { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.7 : 1 },
+        { backgroundColor: c.surface, borderColor: c.border, borderLeftColor: c.highlight, opacity: pressed ? 0.7 : 1 },
       ]}
     >
       <View style={styles.placeTop}>
@@ -241,10 +241,10 @@ function IconButton({
 
 const styles = StyleSheet.create({
   iconButton: { minWidth: 44, minHeight: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
-  placeCard: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.lg, gap: 4 },
+  placeCard: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderLeftWidth: 4, padding: spacing.lg, gap: 4 },
   placeTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   searchIcon: { position: 'absolute', left: 14, top: 15 },
   clearButton: { position: 'absolute', right: 4, top: 2, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing.xxl, paddingHorizontal: spacing.md },
-  emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
 });
